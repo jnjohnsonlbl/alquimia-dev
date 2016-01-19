@@ -14,6 +14,6 @@ popd
 wget https://bitbucket.org/pflotran/pflotran-dev/get/611092f80ddb.zip
 unzip 611092f80ddb.zip
 mv pflotran-pflotran-dev-611092f80ddb $PFLOTRAN_DIR
-pushd $PFLOTRAN_DIR
+pushd $PFLOTRAN_DIR/src/pflotran
 make pflotran_rxn
 popd
