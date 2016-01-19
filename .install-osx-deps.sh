@@ -10,7 +10,7 @@ ln -s /usr/local/lib/gcc/5/libgfortran.a /usr/local/lib/libgfortran.a
 wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.5.4.tar.gz
 tar xzvf petsc-lite-3.5.4.tar.gz
 pushd $PETSC_DIR
-./configure --with-mpi=1 --with-debug=$DEBUG --with-shared-libraries=1
+./configure --with-mpi=1 --with-debug=$DEBUG --with-shared-libraries=0
 make
 popd
 
