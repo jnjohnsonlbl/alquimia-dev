@@ -12,7 +12,7 @@ popd
 
 # Go get pflotran and build it.
 wget https://bitbucket.org/pflotran/pflotran-dev/get/611092f80ddb.zip
-unzip pflotran-pflotran-dev-611092f80ddb.zip
+unzip 611092f80ddb.zip
 mv pflotran-pflotran-dev-611092f80ddb $PFLOTRAN_DIR
 pushd $PFLOTRAN_DIR
 make pflotran_rxn
