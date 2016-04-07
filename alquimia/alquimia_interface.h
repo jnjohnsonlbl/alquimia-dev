@@ -96,17 +96,20 @@ extern "C" {
         AlquimiaEngineStatus* status);
     
     // computes the Jacobian matrix and the residual vector for a reaction
-    // at a single site, given the properties and state. The Jacobian J is 
-    // an Nc x Nc dense matrix, where Nc is the number of concentrations; J 
-    // is stored in column-major order. The Nc x 1 residual vector R is stored
-    // as an array.
+    // at a single site, given the properties and state. The equilibrium and 
+    // kinetic J_eq and J_kin is an Nc x Nc dense matrix, where Nc is the 
+    // number of concentrations; J_eq and J_kin are stored in column-major 
+    // order. The Nc x 1 vector R_kin will store the kinetic contribution to the residual vector.
+    // (NOTE: For surface complexation, we'll need stuff mentioned in the 
+    //  NOTE: PFlotran interface.)
     void (*ComputeJacobianAndResidual)(
         void* pft_engine_state,
         AlquimiaProperties* props,
         AlquimiaState* state,
         AlquimiaAuxiliaryData* aux_data,
-        double* J,
-        double* R,
+        double* J_eq,
+        double* J_kin,
+        double* R_kin,
         AlquimiaEngineStatus* status);
     
     // Access to user selected geochemical data for output, i.e. pH, 

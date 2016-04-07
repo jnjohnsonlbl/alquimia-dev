@@ -545,7 +545,7 @@ end subroutine ReactionStepOperatorSplit
 
 ! **************************************************************************** !
 subroutine ComputeJacobianAndResidual(pft_engine_state, &
-     properties, state, aux_data, J, R, status) bind(C, name="pflotran_alquimia_computejacobianandresidual") 
+     properties, state, aux_data, J_eq, J_kin, R_kin, status) bind(C, name="pflotran_alquimia_computejacobianandresidual") 
 !  NOTE: Function signature is dictated by the alquimia API.
 
   use, intrinsic :: iso_c_binding, only : c_ptr, c_double, c_f_pointer
@@ -564,8 +564,9 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
   type (AlquimiaProperties), intent(in) :: properties
   type (AlquimiaState), intent(in) :: state
   type (AlquimiaAuxiliaryData), intent(in) :: aux_data
-  type (c_ptr), intent(inout) :: J
-  type (c_ptr), intent(inout) :: R
+  type (c_ptr), intent(inout) :: J_eq
+  type (c_ptr), intent(inout) :: J_kin
+  type (c_ptr), intent(inout) :: R_kin
   type (AlquimiaEngineStatus), intent(out) :: status
 
   ! local variables
@@ -585,7 +586,7 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
      return
   end if
 
-  ! Access the J and R arrays.
+  ! Access the J_eq, J_kin, and R_kin arrays.
 
   call CopyAlquimiaToAuxVars(copy_auxdata, engine_state%hands_off, &
        state, aux_data, properties, &
@@ -599,8 +600,27 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
 
   vol_frac_prim = 1.0
 
-  ! Compute the Jacobian and residual here.
+  ! Compute the Jacobian(s) and residual here.
   ! FIXME
+  ! RTotal computes J_eq and sticks it in rt_auxvar%aqueous%dtotal (nprimaryaq x nprimaryaq x nphase array)
+  ! RTAuxVarCompute computes J_kin and sticks it in its Jac argument (ncomp x ncomp), and its res argument
+  ! is R_kin. It also computes the Jacobian corresponding to surface complexation, 
+  ! which we may need down the line.
+  ! Units: 
+  ! J_eq  [kg H2O / L H2O, or molarity / molality]
+  ! J_kin [kg H2O / sec]
+  ! R_kin [mol/sec]
+  !
+  ! See Glenn's model document, in which:
+  !  - J_eq is dPsi/dc in eqs (35-37), 
+  !  - J_kin is R in eqs (35-37), 
+  !  - R_kin is the summed last term ("R") in eq (6).
+  ! 
+  ! NOTE: no mention is made of surface complexation here. For surface complexation, 
+  ! NOTE: see PFlotran's User Manual, the S in eq (A-192) is the contribution to 
+  ! NOTE: the residual in the accumulation term. Meanwhile, its derivative 
+  ! NOTE: w.r.t. total sorbed concentration is the Jacobian J_eq_sorbed 
+  ! NOTE: [m^3 bulk/s].
 
   ! Copy the diagnostic information into the status object.
   status%error = kAlquimiaNoError
