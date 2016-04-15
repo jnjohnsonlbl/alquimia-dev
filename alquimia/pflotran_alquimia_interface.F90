@@ -555,7 +555,7 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
   use AlquimiaContainers_module
 
   ! pflotran
-  use Reaction_module, only : RReact, RUpdateKineticState, RTAuxVarCompute
+  use Reaction_module, only : RReact, RUpdateKineticState, RTAuxVarCompute, RTotal, RReactionDerivative
 
   implicit none
 
@@ -573,10 +573,13 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
   type(PFloTranEngineState), pointer :: engine_state
   PetscReal :: porosity, volume, vol_frac_prim
   PetscReal :: tran_xx(state%total_mobile%size)
-  PetscInt :: i, num_newton_iterations
+  PetscInt :: i, j
   PetscInt, parameter :: phase_index = 1
   logical, parameter :: copy_auxdata = .true.
-  PetscReal, pointer :: Jdata, Rdata
+  PetscReal, pointer :: J_eq_data(:,:,:)
+  PetscReal, pointer :: J_kin_data(:,:)
+  PetscReal, pointer :: R_kin_data(:)
+  integer :: nprimaryaq, nphase, nc
 
   call c_f_pointer(pft_engine_state, engine_state)
   if (engine_state%integrity_check /= integrity_check_value) then
@@ -585,8 +588,6 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
           status%message, kAlquimiaMaxStringLength)
      return
   end if
-
-  ! Access the J_eq, J_kin, and R_kin arrays.
 
   call CopyAlquimiaToAuxVars(copy_auxdata, engine_state%hands_off, &
        state, aux_data, properties, &
@@ -601,11 +602,7 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
   vol_frac_prim = 1.0
 
   ! Compute the Jacobian(s) and residual here.
-  ! FIXME
-  ! RTotal computes J_eq and sticks it in rt_auxvar%aqueous%dtotal (nprimaryaq x nprimaryaq x nphase array)
-  ! RTAuxVarCompute computes J_kin and sticks it in its Jac argument (ncomp x ncomp), and its res argument
-  ! is R_kin. It also computes the Jacobian corresponding to surface complexation, 
-  ! which we may need down the line.
+  ! 
   ! Units: 
   ! J_eq  [kg H2O / L H2O, or molarity / molality]
   ! J_kin [kg H2O / sec]
@@ -621,11 +618,29 @@ subroutine ComputeJacobianAndResidual(pft_engine_state, &
   ! NOTE: the residual in the accumulation term. Meanwhile, its derivative 
   ! NOTE: w.r.t. total sorbed concentration is the Jacobian J_eq_sorbed 
   ! NOTE: [m^3 bulk/s].
+ 
+  ! RTotal computes J_eq and sticks it in engine_state%rt_auxvar%aqueous%dtotal 
+  ! (nprimaryaq x nprimaryaq x nphase array)
+  nprimaryaq = state%total_mobile%size
+  nphase = 1
+  call c_f_pointer(J_eq, J_eq_data, (/nprimaryaq, nprimaryaq, nphase/))
+  call RTotal(engine_state%rt_auxvar, engine_state%global_auxvar, &
+              engine_state%reaction, engine_state%option)
+  J_eq_data = engine_state%rt_auxvar%aqueous%dtotal
+  
+  ! RReactionDerivative computes J_kin and sticks it in its Jac argument (ncomp x ncomp), also storing R_kin in 
+  ! its Res argument. Additionally, it computes the Jacobian corresponding to surface complexation, which 
+  ! we may need down the line.
+  nc = engine_state%reaction%ncomp
+  call c_f_pointer(J_kin, J_kin_data, (/nc, nc/))
+  call c_f_pointer(R_kin, R_kin_data, (/nc/))
+  call RReactionDerivative(R_kin_data, J_kin_data, & 
+                           engine_state%rt_auxvar, engine_state%global_auxvar, &
+                           engine_state%material_auxvar, engine_state%reaction, &
+                           engine_state%option)
 
   ! Copy the diagnostic information into the status object.
   status%error = kAlquimiaNoError
-  status%converged = .false.
-  status%num_rhs_evaluations = status%num_rhs_evaluations + 1
   status%num_jacobian_evaluations = status%num_jacobian_evaluations + 1
 
 end subroutine ComputeJacobianAndResidual

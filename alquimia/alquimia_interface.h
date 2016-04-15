@@ -40,12 +40,12 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
+#endif // __cplusplus 
 
-  /* NOTE(bja): AlquimiaData is a convenience container, and not a data
-     structure that should be passed between the driver and
-     engine. Conditions are not included here because they are short
-     lived data structures. Need one data object per thread. */
+  // NOTE(bja): AlquimiaData is a convenience container, and not a data
+  // structure that should be passed between the driver and
+  // engine. Conditions are not included here because they are short-lived
+  // data structures. You need one of these per thread. 
   typedef struct {
     void* engine_state;
     AlquimiaSizes sizes;
@@ -57,12 +57,12 @@ extern "C" {
     AlquimiaAuxiliaryOutputData aux_output;
   } AlquimiaData;
 
-  /* NOTE(bja): The alquimia interface should contain nothing but
-     function pointers. Inorder to thread chemistry, we need just one
-     interface object. */ 
+  // NOTE(bja): The alquimia interface should contain nothing but
+  // function pointers. In order to thread chemistry, we need just one
+  // interface object.
   typedef struct {
-    /* read data files/structures, initialize memory, basis management
-       (includes reading database, swapping basis, etc.) */
+    // Reads data from the input file into containers, initializing memory
+    // where needed (includes reading the database, swapping the basis, etc.)
     void (*Setup)(
         const char* input_filename,
         bool hands_off,
@@ -71,13 +71,13 @@ extern "C" {
         AlquimiaEngineFunctionality* functionality,
         AlquimiaEngineStatus* status);
 
-    /* gracefully shutdown the engine, cleanup memory */
+    // Gracefully shuts down the engine, cleaning memory 
     void (*Shutdown)(
       void* pft_engine_state,
       AlquimiaEngineStatus* status);
 
-    /* constrain processing for boundary/initial constraints. Called
-       once for each IC/BC. */
+    // Applies a geogeochemical condition to enforce boundary/initial conditions. 
+    // Called once for each IC/BC. 
     void (*ProcessCondition)(
         void* pft_engine_state,
         AlquimiaGeochemicalCondition* condition,
@@ -86,7 +86,7 @@ extern "C" {
         AlquimiaAuxiliaryData* aux_data,
         AlquimiaEngineStatus* status);
 
-    /* take one (or more?) reaction steps in operator split mode */
+    // Takes one reaction step in operator split mode 
     void (*ReactionStepOperatorSplit)(
         void* pft_engine_state,
         double delta_t,
@@ -95,13 +95,20 @@ extern "C" {
         AlquimiaAuxiliaryData* aux_data,
         AlquimiaEngineStatus* status);
     
-    // computes the Jacobian matrix and the residual vector for a reaction
-    // at a single site, given the properties and state. The equilibrium and 
-    // kinetic J_eq and J_kin is an Nc x Nc dense matrix, where Nc is the 
-    // number of concentrations; J_eq and J_kin are stored in column-major 
-    // order. The Nc x 1 vector R_kin will store the kinetic contribution to the residual vector.
-    // (NOTE: For surface complexation, we'll need stuff mentioned in the 
-    //  NOTE: PFlotran interface.)
+    // Computes the Jacobian matrix and the residual vector for a reaction
+    // at a single site, given the properties and state. The equilibrium (J_eq) 
+    // and kinetic (J_kin) Jacobians are Nc x Nc dense matrices, where Nc is 
+    // the number of concentrations; J_eq and J_kin are stored in column-major 
+    // order. The kinetic contribution to the residual will be stored in the 
+    // (Nc x 1) vector R_kin.
+    //
+    // (NOTE: This does not currently support surface complexation. For that, 
+    //  NOTE: we'll need stuff mentioned in the PFlotran interface.)
+    //
+    // UNITS: 
+    //   J_eq: [kg H2O / L H2O], or [molarity / molality]
+    //   J_kin [kg H2O / sec]
+    //   R_kin [mol / sec]
     void (*ComputeJacobianAndResidual)(
         void* pft_engine_state,
         AlquimiaProperties* props,
@@ -112,8 +119,8 @@ extern "C" {
         double* R_kin,
         AlquimiaEngineStatus* status);
     
-    // Access to user selected geochemical data for output, i.e. pH, 
-    // mineral SI, reaction rates 
+    // Retrieves selected geochemical data for output, storing it in 
+    // aux_out.
     void (*GetAuxiliaryOutput)(
         void* pft_engine_state,
         AlquimiaProperties* props,
@@ -122,6 +129,7 @@ extern "C" {
         AlquimiaAuxiliaryOutputData* aux_out,
         AlquimiaEngineStatus* status);
     
+    // Retrieves metadata for the problem, storing it in meta_data.
     void (*GetProblemMetaData)(
         void* pft_engine_state,
         AlquimiaProblemMetaData* meta_data,
@@ -129,12 +137,14 @@ extern "C" {
   } AlquimiaInterface;
 
 
+  // Creates an Alquimia interface for the chemistry engine identified by 
+  // engine_name.
   void CreateAlquimiaInterface(const char* const engine_name,
                                AlquimiaInterface* interface,
                                AlquimiaEngineStatus* status);
 
 #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+#endif // __cplusplus 
 
-#endif  /* ALQUIMIA_INTERFACE_H_ */
+#endif  // ALQUIMIA_INTERFACE_H_ 

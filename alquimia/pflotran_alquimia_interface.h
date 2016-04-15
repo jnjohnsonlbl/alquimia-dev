@@ -73,8 +73,9 @@ extern "C" {
       AlquimiaProperties* material_properties,
       AlquimiaState* state,
       AlquimiaAuxiliaryData* aux_data,
-      double* J,
-      double* R,
+      double* J_eq,
+      double* J_kin,
+      double* R_kin,
       AlquimiaEngineStatus* status);
   void pflotran_alquimia_getauxiliaryoutput(
       void* pft_engine_state,
